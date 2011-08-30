@@ -38,13 +38,16 @@ class ScalogPreParser extends JavaTokenParsers{
 	def prologFunDef:Parser[String] = "[" ~> repsep(func,",") <~ "]" ^^ funcConc
 
 	def func:Parser[String] = 	(ident ~ ("(" ~> repsep(funArg,",") <~ ")" ) <~ ":") ~ 
-					(("(" ~> repsep(varTyp,",") <~ ")") <~ "=>") ~ 
+					((varRetTyp <~ "=>") ^^ (x => List[String](x)) | (("(" ~> repsep(varRetTyp,",") <~ ")") <~ "=>")) ~
 					ident ~ ("(" ~> repsep(ident,",") <~ ")") ^^ funcTrafo
 
 	def funArg:Parser[(String,String)] = (ident <~ ":") ~ varTyp ^^ { case n ~ t => (n,t) }
 
-	def varTyp:Parser[String] = "Int" ^^ (x => "scala.Int") | "Double" ^^ (x => "scala.Double") | "String" | 
-					("PrologList" | "List") ~ "[" ~> varTyp <~ "]" ^^ ( "PrologList["+_+"]" )
+	def varTyp:Parser[String] = litValue | "Option" ~ "[" ~> varTyp <~ "]" | ("PrologList" | "List") ~ "[" ~> varTyp <~ "]" ^^ ( "PrologList["+_+"]" )
+
+	def varRetTyp:Parser[String] = litValue | "Option" ~ "[" ~> varRetTyp <~ "]" | "List" ~ "[" ~> varRetTyp <~ "]" ^^ ( "List["+_+"]" )
+
+	def litValue:Parser[String] = "Boolean" | "Int" ^^ (x => "scala.Int") | "Double" ^^ (x => "scala.Double") | "String" | "Long"
 
 
 	/** Parst optionale Argumente heraus*/
@@ -81,6 +84,22 @@ class ScalogPreParser extends JavaTokenParsers{
 		case h :: t => f(h) + ", " + argConc(t, f)
 	}
 
+	/** Konkateniert die Prolog Parameter danach ob sie ein Scala Parameter oder ein Rückgabewert sind 
+		@param pArgs Paramterliste der Prolog Funktion
+		@param sArgs Parameterliste der Scala Funktion
+		@return Konkatenation der Parameter*/
+	private def concPrologArgs[T](pArgs:List[T], sArgs:List[(T,T)], sNum:Int):String = pArgs match {
+		case x :: Nil => if(sArgs.exists(y => y._1 == x)){
+					if(sNum != 0) throw new Exception("Number of scala and prolog parameters do not match.")
+					"\" + " + x + " + \""
+				}else x.toString
+		case x :: xs => if(sArgs.exists(y => y._1 == x))
+					"\" + " + x + " + \", " + concPrologArgs(xs,sArgs,sNum - 1) 
+				else
+					x.toString + ", " + concPrologArgs(xs,sArgs,sNum - 1)
+		case Nil => ""
+	}
+
 	/** Erstellt aus der Scalog Funktionsdefinition eine Scala/TuProlog Definition
 		@param in Eingangsparser
 		@return Scala Funktion*/
@@ -91,10 +110,7 @@ class ScalogPreParser extends JavaTokenParsers{
 			val pArg = pArgs.filter(x => sArgs.exists(y => y._1 == x))
 			
 			var res = "def " + name + "(" + argConc(sArgs) + "):("+ argConc(sRetArgs, "Option["+ (_:String) +"]") + ") = { \n"
-			res += "\t" + """val result = engine.solve("""" + pName + """(""" + argConc(pArg, "\" + " + (_:String) + " + \" ") + {
-					if(pArg.length == 0) ""
-					else """, """ 
-				} + argConc(pRetArgs, "" + (_:String)) + """).")""" + "\n\n" 
+			res += "\t" + """val result = engine.solve("""" + pName + """(""" + concPrologArgs(pArgs,sArgs,sArgs.length) + """).")""" + "\n\n" 
 			
 			if(sRetArgs.length != pRetArgs.length) throw new Exception("Anzahl der Returnargumente stimmt nicht überein")
 			
@@ -123,11 +139,11 @@ object Scalog extends ScalogPreParser{
 			val file = new FileReader(args(0))
 			
 			parseAll(scalaFile,file) match {
-				case Success(parsedOutput, s) =>	if(s.atEnd){
-										val newFile = new FileWriter(args(1), false)
-										newFile.write(parsedOutput)
-										newFile.close
-									}else throw new Exception("Parsing failure: expected end of input")
+				case Success(parsedOutput, s) => if(s.atEnd){
+									val newFile = new FileWriter(args(1), false)
+									newFile.write(parsedOutput)
+									newFile.close
+								}else throw new Exception("Parsing failure: expected end of input")
 				case NoSuccess(msg,_) => throw new Exception("Parsing failure: " + msg)
 			}
 			

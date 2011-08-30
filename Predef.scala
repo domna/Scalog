@@ -33,8 +33,16 @@ object Predef{
 	}
 
 	implicit def list2PrologList[T](in:List[T]):PrologList[T] = new PrologList[T](in)
+	implicit def pList2List[T](in:PrologList[T]):List[T] = in match {
+		case PrologList(x) => x
+	}
 	implicit def str2List[T](in:String):List[T] = cutPList[T](in)
 	implicit def str2PrologList[T](in:String):PrologList[T] = new PrologList[T](cutPList[T](in))
 	implicit def str2Int(in:String):scala.Int = augmentString(in).toInt
 	implicit def str2Double(in:String):scala.Double = augmentString(in).toDouble
+	implicit def str2Bool(in:String):Boolean = {
+		if(in == "TRUE") true
+		else if (in == "FALSE") false
+		else throw new Exception("Failure at trying to convert String to Boolean")
+	}
 }
