@@ -37,7 +37,7 @@ class ScalogPreParser extends JavaTokenParsers{
 
 	def prologFunDef:Parser[String] = "[" ~> repsep(func,",") <~ "]" ^^ funcConc
 
-	def func:Parser[String] = 	(ident ~ ("" ^^ (x => List[(String,String)]()) |  "(" ~> repsep(funArg,",") <~ ")" ) <~ ":") ~ 
+	def func:Parser[String] = 	(ident ~ ( "(" ~> repsep(funArg,",") <~ ")"  | "" ^^ (x => List[(String,String)]()))  <~ ":") ~ 
 					((varRetTyp <~ "=>") ^^ (x => List[String](x)) | (("(" ~> repsep(varRetTyp,",") <~ ")") <~ "=>")) ~
 					ident ~ ("(" ~> repsep(ident,",") <~ ")") ^^ funcTrafo
 
@@ -112,7 +112,7 @@ class ScalogPreParser extends JavaTokenParsers{
 			var res = "def " + name + "(" + argConc(sArgs) + "):("+ argConc(sRetArgs, "Option["+ (_:String) +"]") + ") = { \n"
 			res += "\t" + """val result = engine.solve("""" + pName + """(""" + concPrologArgs(pArgs,sArgs,sArgs.length) + """).")""" + "\n\n" 
 			
-			if(sRetArgs.length != pRetArgs.length) throw new Exception("Anzahl der Returnargumente stimmt nicht überein")
+			if(sRetArgs.length != pRetArgs.length) throw new Exception("Number of scala and prolog parameters do not match.")
 			
 			var rest = sRetArgs
 			var j = 0
