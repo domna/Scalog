@@ -1,7 +1,7 @@
 object AppCubicTest{
-        %prolog[app(L1:List[Int],L2:List[Int]):(List[Int]) => append(L1,L2,R1), 
-		append(L1:List[String],L2:List[String]):(List[String]) => append(L1,L2,R), 
-		cubic(L1:Int):(Int) => cubicRoot(L1,R1)]{
+        %prolog[app(L1:List[Int],L2:List[Int]):List[Int] => append(L1,R1,L2), 
+		append(L1:List[String],L2:List[String]):List[String] => append(L1,L2,R), 
+		cubic(L1:Int):Int => cubicRoot(L1,R1)]{
 		
 		append([],X,X).
 		append([H|T],X,[H|Rest]) :- append(T,X,Rest).
@@ -13,7 +13,7 @@ object AppCubicTest{
         }
 
         def main(args:Array[String]){
-		println(app(List(1,2,3),List(4,5,6)))
+		println(app(List(1,2,3),List(1,2,3,4,5,6)))
                 println(append(List("f","o","o"),List("b","a","r")))
                 println(cubic(27))
         }
