@@ -1,20 +1,20 @@
-Scalog trys to implement the Prolog language (Based on the tuProlog Project: http://alice.unibo.it/xwiki/bin/view/Tuprolog/) inside of Scala sourcefiles.
-For further information how to write Scalog code consulte one of the examples in the folder 'Beispiele' or have 
+Scalog tries to implement the Prolog language (based on the tuProlog Project: http://alice.unibo.it/xwiki/bin/view/Tuprolog/) into Scala sourcefiles.
+For further information on how to write Scalog code, consult one of the examples in the folder 'Beispiele' or have 
 a look at the german documentation provided in this repo (english version is in progress).
 
 How to compile Scalog.
 ***********************
-You need the librarys of the tuProlog project (link above). Make sure that this libs are in your classpath.
-Further you just need to compile Predef.scala and Scalog.scala. The Predef is linked by every Scalog document
+You need the libraries of the tuProlog project (link above). Make sure that this libs are in your classpath.
+Furthermore, you need to compile Predef.scala and Scalog.scala. The Predef is linked with every Scalog document,
 so be sure to have it in your classpath when you try to compile a Scalog file.
 
 Compiling Scalog files.
 ***********************
-To compile a Scalog file you just have to run the command
+For compiling a Scalog file you just have to run the command
 scala scalog.Scalog <SourceFile> <DestFile>
 
-then you can compile your DestFile into a classfile
+Then you can compile your DestFile into a classfile
 scalac <DestFile>
 
-now your able to run your Scalog code.
+Now you are able to run your Scalog code.
 For further instructions see the documentation.
