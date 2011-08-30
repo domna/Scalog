@@ -1,0 +1,39 @@
+object Einstein{
+	%prolog[einstein():(String,String) => run(R1,R2)]{
+		erstes(E,[E|_]).
+		mittleres(M,[_,_,M,_,_]).
+
+		links(A,B,[A|[B|_]]).
+		links(A,B,[_|R]) :- links(A,B,R).
+
+		neben(A,B,L) :- links(A,B,L);links(B,A,L).
+
+		run(X,N) :-
+			X = [_,_,_,_,_],    
+			member([rot,brite,_,_,_],X), 
+			member([_,schwede,_,_,hund],X),
+			member([_,daene,tee,_,_],X),  
+			links([gruen,_,_,_,_],[weiss,_,_,_,_],X),      
+			member([gruen,_,kaffee,_,_],X),               
+			member([_,_,_,pallmall,vogel],X),            
+			mittleres([_,_,milch,_,_],X),               
+			member([gelb,_,_,dunhill,_],X),                
+			erstes([_,norweger,_,_,_],X),                  
+			neben([_,_,_,marlboro,_],[_,_,_,_,katze],X),   
+			neben([_,_,_,_,pferd],[_,_,_,dunhill,_],X),    
+			member([_,_,bier,winfield,_],X),               
+			neben([_,norweger,_,_,_],[blau,_,_,_,_],X),    
+			member([_,deutsche,_,rothmans,_],X),           
+			neben([_,_,_,marlboro,_],[_,_,wasser,_,_],X),  
+			member([_,N,_,_,fisch],X).                     
+	}
+
+	def main(args:Array[String]){
+		val whoHasTheFish = einstein
+		whoHasTheFish._2 match {
+			case Some(x) => println("Der " + x + " hat den Fisch.")
+			case None => println("Scheinbar hat niemand den Fisch.")
+		}
+		println("\nHaeuserbelegung: " + whoHasTheFish._1)
+	}
+}

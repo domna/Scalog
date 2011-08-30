@@ -1,0 +1,16 @@
+object ReverseTest{
+	%prolog[reverse(L1:List[String]):(List[String]) => reverse(L1,R)]{
+		reverse(I,O) :- reverseAcc(I,[],O).
+		reverseAcc([],X,X).
+		reverseAcc([H|T],X,Y) :- reverseAcc(T,[H|X],Y).
+	}
+	
+	def main(args:Array[String]){
+		val rev = reverse(List("f","o","o","b","a","r"))
+		rev match {
+			case Some(PrologList(x)) => println(x)
+			case None => println("Fehler beim reversen...")
+		}
+	}
+}
+
