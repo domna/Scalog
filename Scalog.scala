@@ -37,7 +37,7 @@ class ScalogPreParser extends JavaTokenParsers{
 
 	def prologFunDef:Parser[String] = "[" ~> repsep(func,",") <~ "]" ^^ funcConc
 
-	def func:Parser[String] = 	(ident ~ ("(" ~> repsep(funArg,",") <~ ")" ) <~ ":") ~ 
+	def func:Parser[String] = 	(ident ~ ("" ^^ (x => List[(String,String)]()) |  "(" ~> repsep(funArg,",") <~ ")" ) <~ ":") ~ 
 					((varRetTyp <~ "=>") ^^ (x => List[String](x)) | (("(" ~> repsep(varRetTyp,",") <~ ")") <~ "=>")) ~
 					ident ~ ("(" ~> repsep(ident,",") <~ ")") ^^ funcTrafo
 
