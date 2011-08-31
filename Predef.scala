@@ -1,5 +1,7 @@
 package scalog
 
+import scala.util.parsing.combinator._
+
 /** Stellt eine Liste mit [1,2,3,...] als toString Methode bereit*/
 case class PrologList[T](data:List[T]){
 	override def toString:String = {
@@ -17,19 +19,23 @@ case class PrologList[T](data:List[T]){
 	@author Florian Dobener
 	@version 0.1*/
 object Predef{
+	/** A prolog list parser*/
+	class PListParser extends JavaTokenParsers{
+		def list:Parser[List[Any]] = "[" ~> listArgs <~ "]"
+		def listArgs:Parser[List[Any]] = repsep(args, ",")
+		def args:Parser[Any] = list | "[^]]*".r
+	}
+
 	/** Zerschneidet einen String in eine PrologListe
 		@param s Eingangstring, der eine PrologListe enthält
 		@return Extrahierte Liste*/
 	def cutPList[T](s:String):List[T] = {
-		def cut(s:String):List[T] = {
-			if(augmentString(s)(0) == ',' || augmentString(s)(0) == ' ' || augmentString(s)(0) == '[') cut(s.substring(1))
-			else if(augmentString(s)(0) == ']') Nil
-			else augmentString(s)(0).asInstanceOf[T] :: cut(s.substring(1))
+		val parser = new PListParser	
+		parser.parseAll(parser.list,s) match {
+			case parser.Success(pO, s) => 	if(s.atEnd) pO.asInstanceOf[List[T]]
+							else throw new Exception("List parsing exception: expected end of list")
+			case parser.NoSuccess(msg,_) => throw new Exception("List parsing failure: " + msg)
 		}
-		
-		if(augmentString(s)(0) == '[' && augmentString(s)(augmentString(s).length - 1) == ']'){
-			cut(s)  
-		}else throw new Exception("Failure at converting string to list: wrong format.")
 	}
 
 	implicit def list2PrologList[T](in:List[T]):PrologList[T] = new PrologList[T](in)
