@@ -1,5 +1,5 @@
 Scalog tries to implement the Prolog language (based on the tuProlog Project: http://alice.unibo.it/xwiki/bin/view/Tuprolog/) into Scala sourcefiles.
-For further information on how to write Scalog code, consult one of the examples in the folder 'Beispiele' or have 
+For further information on how to write Scalog code, consult one of the examples in the folder 'examples' or have 
 a look at the german documentation provided in this repo (english version is in progress).
 
 How to compile Scalog.
