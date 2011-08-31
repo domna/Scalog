@@ -1,5 +1,5 @@
 object AppCubicTest{
-        %prolog[app(L1:List[Int],L2:List[Int]):List[Int] => append(L1,R1,L2), 
+        prolog[app(L1:List[Int],L2:List[Int]):List[Int] => append(L1,R1,L2), 
 		append(L1:List[String],L2:List[String]):List[String] => append(L1,L2,R), 
 		cubic(L1:Int):Int => cubicRoot(L1,R1)]{
 		

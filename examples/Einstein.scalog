@@ -1,5 +1,5 @@
 object Einstein{
-	%prolog[einstein():(String,String) => run(R1,R2)]{
+	%prolog[einstein:(String,String) => run(R1,R2)]{
 		erstes(E,[E|_]).
 		mittleres(M,[_,_,M,_,_]).
 
