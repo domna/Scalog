@@ -3,30 +3,30 @@
 */
 
 object AppCubicTest{
-        %prolog[	appGeneric[T](L1:List[T],L2:List[T]):List[T] => append(L1,L2,R1),
-					app(L1:List[Int],L2:List[Int]):List[Int] => append(L1,R1,L2), 
-					cubic(L1:Int):Int => cubicRoot(L1,R1)]{
+        %prolog[appGeneric[T](L1:List[T],L2:List[T]):List[T] => append(L1,L2,R1),
+		app(L1:List[Int],L2:List[Int]):List[Int] => append(L1,R1,L2), 
+		cubic(L1:Int):Int => cubicRoot(L1,R1)]{
 		
-			append([],X,X).
-			append([H|T],X,[H|Rest]) :- append(T,X,Rest).
+		append([],X,X).
+		append([H|T],X,[H|Rest]) :- append(T,X,Rest).
 
-			cubicRoot(1,1).
-			cubicRoot(X,E) :- X > 0, cubicRootAcc(X,X,E).
-			cubicRootAcc(X,K,K) :- X >= K*K*K, !.
-			cubicRootAcc(X,K,E) :- K2 is K - 1, cubicRootAcc(X,K2,E).
+		cubicRoot(1,1).
+		cubicRoot(X,E) :- X > 0, cubicRootAcc(X,X,E).
+		cubicRootAcc(X,K,K) :- X >= K*K*K, !.
+		cubicRootAcc(X,K,E) :- K2 is K - 1, cubicRootAcc(X,K2,E).
         }
 
         def main(args:Array[String]){
-			/* Test the app function in the way of searching the second list that is needed to built the snd argument*/ 
-			println(app(List(1,2,3),List(1,2,3,4,5,6)))
+		/* Test the app function in the way of searching the second list that is needed to built the snd argument*/ 
+		println(app(List(1,2,3),List(1,2,3,4,5,6)))
 			
-			/* Test the generic app function with Ints */
-			println(appGeneric(List(1,2,3),List(4,5,6)))
+		/* Test the generic app function with Ints */
+		println(appGeneric(List(1,2,3),List(4,5,6)))
 			
-			/* Test the generic app function with Strings */
-			println(appGeneric(List("f","o","o"),List("b","a","r")))
+		/* Test the generic app function with Strings */
+		println(appGeneric(List("f","o","o"),List("b","a","r")))
             
-			/* Test the cubic root function */
-			println(cubic(27))
+		/* Test the cubic root function */
+		println(cubic(27))
         }
 }
