@@ -4,31 +4,33 @@ import scala.util.parsing.combinator._
 import scala.util.parsing.input.Reader
 import java.io.{FileReader, FileWriter}
 
-/** Scala PreParser parst die Prolog Konstrukte in valides Scala mit tuProlog API
+/** Scalog preparser parses prolog language blocks into valid scala source code (with use of the tuProlog API)
 	@author Florian Dobener
 	@version 0.1*/
 class ScalogPreParser extends JavaTokenParsers{
-	/** Vordefinierte Scala Funktionalität (benötigte imports etc.) */
+	/** Predefined Scala source code (this is added on top of every file) */
 	val scalaPredef = """import alice.tuprolog._
 	import scala.util.parsing.combinator._
 	import scalog.Predef._
 	import scalog._
 
 				"""
-	/** Vordefinierte Prolog Konstrukte (nur das was explizit in der Datei erklärt werden muss => Ansonsten scalog.Predef Objekt)*/
+	/** Predefined Prolog source code (added above prolog definitions). Here are only things that are absolutly necessary to be written
+	into the source code. Everything else is stored in the scalog.Predef object which should be automatically imported in every file*/
 	val predef = "val engine = new Prolog\n\n"
 	
-	val anyExpr = """(.)*""".r //Match all characters and give them back
 	val scalaExpr = """[^%]*""".r
 	val prologBody = """[^}]*""".r
 	
-	/*def scalaFile:Parser[String] = rep(scalaExpr | prologDef) ^^ {
+	/* Testing for extension of the parser to have more than one prolog block.
+	Problem: Parsers does an infinit loop when using this
+	def scalaFile:Parser[String] = rep(scalaExpr | prologDef) ^^ {
 		case Nil => ""
 		case x :: xs => 	var res = x
 					for(i <- x) res += i
 					res
 	}*/
-	def scalaFile:Parser[String] = (opt(scalaExpr) ^^ optS) ~ (opt(prologDef) ^^ optS) ~ (opt(scalaExpr) ^^ optS) ^^ {
+	def scalaFile:Parser[String] = (opt(scalaExpr) ^^ parseOpt(x=>x)) ~ (opt(prologDef) ^^ parseOpt(x=>x)) ~ (opt(scalaExpr) ^^ parseOpt(x=>x)) ^^ {
 		case s1 ~ p1 ~ s2 => scalaPredef + s1 + "\n\n//Scalog Definition Part\n" + p1 + "//End of Scalog Definition Part\n" + s2
 	}
 
@@ -38,7 +40,8 @@ class ScalogPreParser extends JavaTokenParsers{
 
 	def prologFunDef:Parser[String] = "[" ~> repsep(func,",") <~ "]" ^^ funcConc
 
-	def func:Parser[String] = 	(ident ~ (opt("[" ~> "[A-Z]".r <~ "]") ^^ optG) ~ ( "(" ~> repsep(funArg,",") <~ ")"  | "" ^^ (x => List[(String,String)]()))  <~ ":") ~ 
+	def func:Parser[String] = 	(ident ~ (opt("[" ~> "[A-Z]".r <~ "]") ^^ parseOpt("[" + (_:String) + "]")) ~ 
+					( "(" ~> repsep(funArg,",") <~ ")"  | "" ^^ (x => List[(String,String)]()))  <~ ":") ~ 
 					((varRetTyp <~ "=>") ^^ (x => List[String](x)) | (("(" ~> repsep(varRetTyp,",") <~ ")") <~ "=>")) ~
 					ident ~ ("(" ~> repsep(ident,",") <~ ")") ^^ funcTrafo
 
@@ -46,55 +49,49 @@ class ScalogPreParser extends JavaTokenParsers{
 
 	def varTyp:Parser[String] = "Option" ~ "[" ~> varTyp <~ "]" | ("PrologList" | "List") ~ "[" ~> varTyp <~ "]" ^^ ( "PrologList["+_+"]" ) | litValue 
 
-	def varRetTyp:Parser[String] = "List" ~ "[" ~> varRetTyp <~ "]" ^^ ( "List["+_+"]" ) | "Option" ~ "[" ~> varRetTyp <~ "]" | litValue  
+	def varRetTyp:Parser[String] = "Option" ~ "[" ~> varRetTyp <~ "]" | "List" ~ "[" ~> varRetTyp <~ "]" ^^ ( "List["+_+"]" ) | litValue  
 
 	def litValue:Parser[String] = "Boolean" | "Int" ^^ (x => "scala.Int") | "Double" ^^ (x => "scala.Double") | "String" | "Long" | "[A-Z]".r
 
 
-	/** Parst optionale Argumente heraus*/
-	def optS(in:Option[String]):String = in match{
-		case Some(x) => x
-		case None => ""
-	}
-	
-	/** Parses a generic value out of an option*/
-	def optG(in:Option[String]):String = in match {
-		case Some(x) => "[" + x + "]"
+	/** Converts a string option into a string. It also applies the function env on the value of a some case. */
+	def parseOpt(env:String => String)(o:Option[String]):String = o match {
+		case Some(x) => env(x)
 		case None => ""
 	}
 
-	/** Baut den Quelltext aus verschiedenen Funktion
-		@param fl Funktionenliste
-		@return Funktionen zusammengehangen als String*/
+	/** Concatenates different functions together for writing them to the source file
+		@param fl List of functions
+		@return Concatenated functions*/
 	def funcConc(fl:List[String]):String = {
 		var res = ""
 		for(i <- fl) res += i + "\n"
 		res
 	}
 
-	/** Verkettet Stringtupel Listen zu Scala Argumentenlisten
-		@param args Argumentenliste
-		@return Argumente in der Form Scalas*/
+	/** Converts a list of string tupels to a scala variable declaration (e.g. ("name","Int") converts to name:Int).
+		@param args List of arguments
+		@return Scala variables*/
 	private def argConc(args:List[(String,String)]):String = args match{
 		case last :: Nil => last._1 + ":" + last._2
 		case Nil => ""
 		case h :: t => h._1 + ":" + h._2 + ", " + argConc(t)
 	}
 
-	/** Verkettet Argumente (Trenner: ,) mithilfe einer Umgebungsfunktion (Einfach Verkettung f = _ )
-		@param args Argumente, die verkettet werden sollen
-		@param f Umgebungsfunktion: Argumente werden mithilfe dieser umschlossen
-		@return Zusammengehangene Agumente*/
+	/** Concatenates arguments (with seperator , ). It applies the environment function f to enclose every argument.
+		@param args List of arguments
+		@param f Encloses every argument
+		@return Concatenated arguments*/
 	private def argConc[T](args:List[T], f:T => String):String = args match{
 		case last :: Nil => f(last)
 		case Nil => ""
 		case h :: t => f(h) + ", " + argConc(t, f)
 	}
 
-	/** Konkateniert die Prolog Parameter danach ob sie ein Scala Parameter oder ein Rückgabewert sind 
-		@param pArgs Paramterliste der Prolog Funktion
-		@param sArgs Parameterliste der Scala Funktion
-		@return Konkatenation der Parameter*/
+	/** Builts the arguments for the prolog function call
+		@param pArgs List of prolog arguments (which gives us an expression back)
+		@param sArgs List of scala arguments (which are defined in the scala function)
+		@return Concatenation of these parameters*/
 	private def concPrologArgs[T](pArgs:List[T], sArgs:List[(T,T)], sNum:Int):String = pArgs match {
 		case x :: Nil => if(sArgs.exists(y => y._1 == x)){
 					if(sNum != 0) throw new Exception("Number of scala and prolog parameters do not match.")
@@ -107,9 +104,9 @@ class ScalogPreParser extends JavaTokenParsers{
 		case Nil => ""
 	}
 
-	/** Erstellt aus der Scalog Funktionsdefinition eine Scala/TuProlog Definition
-		@param in Eingangsparser
-		@return Scala Funktion*/
+	/** Builts the scala function which sends the tuProlog call
+		@param in Parser output
+		@return The scala function */
 	def funcTrafo(in: String~String~List[(String,String)]~List[String]~String~List[String]):String = in match{
 		case name ~ gen ~ sArgs ~ sRetArgs ~ pName ~ pArgs =>
 			println("Parsed " + name + " => " + pName)
@@ -137,10 +134,9 @@ class ScalogPreParser extends JavaTokenParsers{
 	}
 }
 
-/** Dieses Objekt ist für die externe Bearbeitung der Dateien zuständig.*/
+/** This object does the external file handling */
 object Scalog extends ScalogPreParser{
-	/** Die main Methode nimmt über die Konsole zwei Argumente auf, die die Input- und Outputdatei repräsentieren.
-		Gibt es mehr oder weniger als zwei Argumente wird ein Fehler ausgegeben*/
+	/** The main method takes two arguments which are representing the files to read from and to write in. */
 	def main(args:Array[String]){
 		if(args.length == 2){
 			val file = new FileReader(args(0))
@@ -160,6 +156,6 @@ object Scalog extends ScalogPreParser{
 			}
 			
 			file.close
-		}else println("Nicht genügend Argumente. Versuchen Sie: scalog <SourceFile> <DestFile>")
+		}else println("Not enough arguments. Try: scalog <SourceFile> <DestFile>")
 	}
 }
