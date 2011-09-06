@@ -17,28 +17,26 @@ class ScalogPreParser extends JavaTokenParsers{
 				"""
 	/** Predefined Prolog source code (added above prolog definitions). Here are only things that are absolutly necessary to be written
 	into the source code. Everything else is stored in the scalog.Predef object which should be automatically imported in every file*/
-	val predef = "val engine = new Prolog\n\n"
+	val prologPredef = "val engine = new Prolog\n\n"
 	
 	val scalaExpr = """[^%]*""".r
 	val prologBody = """[^}]*""".r
 	
-	/* Testing for extension of the parser to have more than one prolog block.
-	Problem: Parsers does an infinit loop when using this
-	def scalaFile:Parser[String] = rep(scalaExpr | prologDef) ^^ {
-		case Nil => ""
-		case x :: xs => 	var res = x
-					for(i <- x) res += i
-					res
+	//Testing for extension of the parser to have more than one prolog block.
+	//Problem: Parsers does an infinit loop when using this
+	/*def scalaFile:Parser[String] = (opt(scalaExpr) ^^ parseOpt(x=>x)) ~ rep(prologDef | scalaExpr) ^^ {
+			case x ~ list => list.foldLeft(x){(conc,a) => conc + a}
 	}*/
+	
 	def scalaFile:Parser[String] = (opt(scalaExpr) ^^ parseOpt(x=>x)) ~ (opt(prologDef) ^^ parseOpt(x=>x)) ~ (opt(scalaExpr) ^^ parseOpt(x=>x)) ^^ {
 		case s1 ~ p1 ~ s2 => scalaPredef + s1 + "\n\n//Scalog Definition Part\n" + p1 + "//End of Scalog Definition Part\n" + s2
 	}
 
 	def prologDef:Parser[String] = "%prolog" ~> prologFunDef ~ ("{" ~> prologBody <~ "}") ^^ {
-		case f ~ b =>	predef + "engine.setTheory(new Theory(\"\"\"" + b + "\"\"\"))" + "\n\n" + f 
+		case f ~ b =>	prologPredef + "engine.setTheory(new Theory(\"\"\"" + b + "\"\"\"))" + "\n\n" + f 
 	}
 
-	def prologFunDef:Parser[String] = "[" ~> repsep(func,",") <~ "]" ^^ funcConc
+	def prologFunDef:Parser[String] = "[" ~> repsep(func,",") <~ "]" ^^ ( _.reduceLeft{(conc,x) => conc + "\n" + x })
 
 	def func:Parser[String] = 	(ident ~ (opt("[" ~> "[A-Z]".r <~ "]") ^^ parseOpt("[" + (_:String) + "]")) ~ 
 					( "(" ~> repsep(funArg,",") <~ ")"  | "" ^^ (x => List[(String,String)]()))  <~ ":") ~ 
@@ -60,33 +58,22 @@ class ScalogPreParser extends JavaTokenParsers{
 		case None => ""
 	}
 
-	/** Concatenates different functions together for writing them to the source file
-		@param fl List of functions
-		@return Concatenated functions*/
-	def funcConc(fl:List[String]):String = {
-		var res = ""
-		for(i <- fl) res += i + "\n"
-		res
-	}
-
 	/** Converts a list of string tupels to a scala variable declaration (e.g. ("name","Int") converts to name:Int).
 		@param args List of arguments
 		@return Scala variables*/
-	private def argConc(args:List[(String,String)]):String = args match{
-		case last :: Nil => last._1 + ":" + last._2
-		case Nil => ""
-		case h :: t => h._1 + ":" + h._2 + ", " + argConc(t)
-	}
+	private def argConc(args:List[(String,String)]):String = 
+		args.map(x => x._1 + ":" + x._2).reduceLeft { (conc, x) =>
+			conc + ", " + x
+		}
 
 	/** Concatenates arguments (with seperator , ). It applies the environment function f to enclose every argument.
 		@param args List of arguments
 		@param f Encloses every argument
 		@return Concatenated arguments*/
-	private def argConc[T](args:List[T], f:T => String):String = args match{
-		case last :: Nil => f(last)
-		case Nil => ""
-		case h :: t => f(h) + ", " + argConc(t, f)
-	}
+	private def argConc[T](args:List[T], f:T => String):String = 
+		args.map(f(_)).reduceLeft { (conc, x) =>
+			conc + ", " + x
+		}
 
 	/** Builts the arguments for the prolog function call
 		@param pArgs List of prolog arguments (which gives us an expression back)
