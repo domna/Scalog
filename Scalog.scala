@@ -32,7 +32,7 @@ class ScalogPreParser extends JavaTokenParsers{
 		case s1 ~ p1 ~ s2 => scalaPredef + s1 + "\n\n//Scalog Definition Part\n" + p1 + "//End of Scalog Definition Part\n" + s2
 	}
 
-	def prologDef:Parser[String] = "%prolog" ~> prologFunDef ~ ("{" ~> prologBody <~ "}") ^^ {
+	def prologDef:Parser[String] = "prolog" ~> prologFunDef ~ ("{" ~> prologBody <~ "}") ^^ {
 		case f ~ b =>	prologPredef + "engine.setTheory(new Theory(\"\"\"" + b + "\"\"\"))" + "\n\n" + f 
 	}
 
@@ -81,7 +81,7 @@ class ScalogPreParser extends JavaTokenParsers{
 		@return Concatenation of these parameters*/
 	private def concPrologArgs[T](pArgs:List[T], sArgs:List[(T,T)], sNum:Int):String = pArgs match {
 		case x :: Nil => if(sArgs.exists(y => y._1 == x)){
-					if(sNum != 0) throw new Exception("Number of scala and prolog parameters do not match.")
+					if(sNum != 0) throw new ParamException
 					"\" + " + x + " + \""
 				}else x.toString
 		case x :: xs => if(sArgs.exists(y => y._1 == x))
@@ -90,6 +90,7 @@ class ScalogPreParser extends JavaTokenParsers{
 					x.toString + ", " + concPrologArgs(xs,sArgs,sNum - 1)
 		case Nil => ""
 	}
+			
 
 	/** Builts the scala function which sends the tuProlog call
 		@param in Parser output
@@ -103,7 +104,7 @@ class ScalogPreParser extends JavaTokenParsers{
 			var res = "def " + name + gen + "(" + argConc(sArgs) + "):("+ argConc(sRetArgs, "Option["+ (_:String) +"]") + ") = { \n"
 			res += "\t" + """val result = engine.solve("""" + pName + """(""" + concPrologArgs(pArgs,sArgs,sArgs.length) + """).")""" + "\n\n" 
 			
-			if(sRetArgs.length != pRetArgs.length) throw new Exception("Number of scala and prolog parameters do not match.")
+			if(sRetArgs.length != pRetArgs.length) throw new ParamException
 			
 			var rest = sRetArgs
 			var j = 0
@@ -128,18 +129,13 @@ object Scalog extends ScalogPreParser{
 		if(args.length == 2){
 			val file = new FileReader(args(0))
 			
-			def printEnv[T](in:Reader[T], cnt:Int):String = {
-				if(cnt == 0) ""
-				else in.first + printEnv(in.rest, cnt - 1)
-			}
-			
 			parseAll(scalaFile,file) match {
 				case Success(parsedOutput, s) => if(s.atEnd){
 									val newFile = new FileWriter(args(1), false)
 									newFile.write(parsedOutput)
 									newFile.close
-								}else throw new Exception("Parsing failure: expected end of input")
-				case NoSuccess(msg,x) => throw new Exception("Parsing failure: " + msg + "\n" + x.first + "  ^  " + printEnv(x.rest, 50))
+								}else throw new ParseException("expected end of input", s)
+				case NoSuccess(msg,x) => throw new ParseException(msg, x)
 			}
 			
 			file.close
