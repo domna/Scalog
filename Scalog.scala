@@ -62,7 +62,7 @@ class ScalogPreParser extends JavaTokenParsers{
 		@param args List of arguments
 		@return Scala variables*/
 	private def argConc(args:List[(String,String)]):String = 
-		args.map(x => x._1 + ":" + x._2).reduceLeft { (conc, x) =>
+		args map(x => x._1 + ":" + x._2) reduceLeft { (conc, x) =>
 			conc + ", " + x
 		}
 
@@ -71,7 +71,7 @@ class ScalogPreParser extends JavaTokenParsers{
 		@param f Encloses every argument
 		@return Concatenated arguments*/
 	private def argConc[T](args:List[T], f:T => String):String = 
-		args.map(f(_)).reduceLeft { (conc, x) =>
+		args map(f) reduceLeft { (conc, x) =>
 			conc + ", " + x
 		}
 
