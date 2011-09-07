@@ -32,13 +32,14 @@ class ScalogPreParser extends JavaTokenParsers{
 		case s1 ~ p1 ~ s2 => scalaPredef + s1 + "\n\n//Scalog Definition Part\n" + p1 + "//End of Scalog Definition Part\n" + s2
 	}
 
-	def prologDef:Parser[String] = "prolog" ~> prologFunDef ~ ("{" ~> prologBody <~ "}") ^^ {
+	def prologDef:Parser[String] = "%prolog" ~> prologFunDef ~ ("{" ~> prologBody <~ "}") ^^ {
 		case f ~ b =>	prologPredef + "engine.setTheory(new Theory(\"\"\"" + b + "\"\"\"))" + "\n\n" + f 
 	}
 
 	def prologFunDef:Parser[String] = "[" ~> repsep(func,",") <~ "]" ^^ ( _.reduceLeft{(conc,x) => conc + "\n" + x })
 
-	def func:Parser[String] = 	(ident ~ (opt("[" ~> "[A-Z]".r <~ "]") ^^ parseOpt("[" + (_:String) + "]")) ~ 
+	
+	def func:Parser[String] = 	(ident ~ (opt("[" ~> "[A-Z]\\w*".r <~ "]") ^^ (parseOpt(x => "[" + x + "]"))) ~ 
 					( "(" ~> repsep(funArg,",") <~ ")"  | "" ^^ (x => List[(String,String)]()))  <~ ":") ~ 
 					((varRetTyp <~ "=>") ^^ (x => List[String](x)) | (("(" ~> repsep(varRetTyp,",") <~ ")") <~ "=>")) ~
 					ident ~ ("(" ~> repsep(ident,",") <~ ")") ^^ funcTrafo
@@ -49,7 +50,7 @@ class ScalogPreParser extends JavaTokenParsers{
 
 	def varRetTyp:Parser[String] = "Option" ~ "[" ~> varRetTyp <~ "]" | "List" ~ "[" ~> varRetTyp <~ "]" ^^ ( "List["+_+"]" ) | litValue  
 
-	def litValue:Parser[String] = "Boolean" | "Int" ^^ (x => "scala.Int") | "Double" ^^ (x => "scala.Double") | "String" | "Long" | "[A-Z]".r
+	def litValue:Parser[String] = "Boolean" | "Int" ^^ (x => "scala.Int") | "Double" ^^ (x => "scala.Double") | "String" | "Long" | "[A-Z]\\w*".r
 
 
 	/** Converts a string option into a string. It also applies the function env on the value of a some case. */
@@ -108,7 +109,7 @@ class ScalogPreParser extends JavaTokenParsers{
 			
 			var rest = sRetArgs
 			var j = 0
-			for(i <- pRetArgs){
+			pRetArgs foreach {i =>
 				res += "\t var r" + j + ":Option[" + rest.head + "] = None \n"
 				res += "\t if(result.isSuccess) r" + j + " = Some("
 				res += "result.getVarValue(\"" + i + "\").toString)\n"				
