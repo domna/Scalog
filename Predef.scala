@@ -62,12 +62,14 @@ object Predef{
 	
 	implicit def term2Long(x:Term):scala.Long = x match {
 		case n:Number =>	if(n.isInstanceOf[Long]) n.longValue
+							else if(n.isInstanceOf[Int]) n.intValue.toLong
 							else throw new ConvException("tuprolog.Term","Long")
 		case _ => throw new ConvException("tuprolog.Term","Long")
 	}
 	
 	implicit def term2Double(x:Term):scala.Double = x match {
 		case n:Number => 	if(n.isInstanceOf[Double]) n.doubleValue
+							else if(n.isInstanceOf[Float]) n.floatValue.toDouble
 							else throw new ConvException("tuprolog.Term","Double")
 		case _ => throw new ConvException("tuprolog.Term","Double")
 	}
@@ -77,12 +79,16 @@ object Predef{
 							else throw new ConvException("tuprolog.Term","Float")
 		case _ => throw new ConvException("tuprolog.Term","Float")
 	}
-	
-	implicit def term2Str(x:Term):String = x match {
-		case n:Struct => 	if(n.getArity == 0) n.toString
-							else throw new ConvException("tuprolog.Term","String")
-		case _ => throw new ConvException("tuprolog.Term","String")
+
+	implicit def term2Num(x:Term):Number = x match {
+		case n:Number => n
 	}
+	
+	implicit def term2Struct(x:Term):Struct = x match {
+		case n:Struct => n
+	}
+	
+	implicit def term2Str(x:Term):String = x.toString
 	
 	implicit def term2Sth[T](x:Term):Any = x match {
 		case n:Number => 	if(n.isInstanceOf[Int]) n.intValue
@@ -96,12 +102,21 @@ object Predef{
 		case _ => throw new ConvException("tuprolog.Term","Any")
 	}
 	
-	implicit def term2List(x:Term):List[Any] = x match {
-		case n:Struct => 	if(n.getArity == 2){
-								if(n.isEmptyList) List[Any]()
-								else n.listHead :: term2List(n.listTail)
+	implicit def term2List[T](x:Term):List[T] = x match {
+		case n:Struct => 	if(n.isList){
+								if(n.isEmptyList) List[T]()
+								else parseHead[T](n.listHead) :: term2List(n.listTail)
 							}else throw new ConvException("tuprolog.Term","List")
 		case _ => throw new ConvException("tuprolog.Term","List")
+	}
+	
+	def parseHead[T](x:Term):T = x match {
+		case x:Number => 	if(n.isInstanceOf[T] && n.isInstanceOf[Int]) n.intValue
+							else if(n.isInstanceOf[T] && n.isInstanceOf[Double]) n.doubleValue
+							else if(n.isInstanceOf[T] && n.isInstanceOf[Float]) n.floatValue
+							else if(n.isInstanceOf[T] && n.isInstanceOf[Long]) n.longValue
+		case x:Struct =>	if(n.isAtomic) 
+		case _ => throw new ConvException("tuprolog.Term","T")
 	}
 	
 	//implicit def term2Array[T:ClassManifest](x:Term):Array[T] = term2List[T](x).toArray
