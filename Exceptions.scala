@@ -14,3 +14,5 @@ class ParseException[T](msg:String, pos:Reader[T]) extends Exception(msg){
 }
 
 class ParamException extends Exception("Number of scala and prolog parameters do not match.")
+
+class ConvException(from:String, to:String) extends Exception("Conversion error while converting from " + from + " to " + to)

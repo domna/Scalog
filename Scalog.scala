@@ -22,6 +22,12 @@ class ScalogPreParser extends JavaTokenParsers{
 	val scalaExpr = """[^%]*""".r
 	val prologBody = """[^}]*""".r
 	
+	//Testing for extension of the parser to have more than one prolog block.
+	//Problem: Parsers does an infinit loop when using this
+	/*def scalaFile:Parser[String] = (opt(scalaExpr) ^^ parseOpt(x=>x)) ~ rep(prologDef | scalaExpr) ^^ {
+			case x ~ list => list.foldLeft(x){(conc,a) => conc + a}
+	}*/
+	
 	def scalaFile:Parser[String] = (opt(scalaExpr) ^^ parseOpt(x=>x)) ~ (opt(prologDef) ^^ parseOpt(x=>x)) ~ (opt(scalaExpr) ^^ parseOpt(x=>x)) ^^ {
 		case s1 ~ p1 ~ s2 => scalaPredef + s1 + "\n\n//Scalog Definition Part\n" + p1 + "//End of Scalog Definition Part\n" + s2
 	}
@@ -37,6 +43,20 @@ class ScalogPreParser extends JavaTokenParsers{
 					( "(" ~> repsep(funArg,",") <~ ")"  | "" ^^ (x => List[(String,String)]()))  <~ ":") ~ 
 					((varRetTyp <~ "=>") ^^ (x => List[String](x)) | (("(" ~> repsep(varRetTyp,",") <~ ")") <~ "=>")) ~
 					ident ~ ("(" ~> repsep(ident,",") <~ ")") ^^ funcTrafo
+	
+					
+	/*def func:Parser[String] = (((scalaFunc ~ scalaArgs <~ ":") ~ scalaRetArgs <~ "=>") ~ prologFunc) ^^ funcTrafo
+					
+	def scalaFunc:Parser[String~String] = ident ~ (opt("[" ~> "[A-Z]\\w*".r <~ "]") ^^ parseOpt(x => "[" + x + "]"))
+	
+	def scalaArgs:Parser[List[(String,String)]] = 	"(" ~> repsep(funArg,",") <~ ")" | 
+													"" ^^ (x => List[(String,String)]()) 
+	
+	def scalaRetArgs:Parser[List[String]] = varRetTyp ^^ (x => List[String](x)) | 
+											"(" ~> repsep(varRetTyp,",") <~ ")"
+	
+	def prologFunc:Parser[String~List[String]] = ident ~ ("(" ~> repsep(ident,",") <~ ")")*/
+
 	
 	def funArg:Parser[(String,String)] = (ident <~ ":") ~ varTyp ^^ { case n ~ t => (n,t) }
 
