@@ -22,12 +22,6 @@ class ScalogPreParser extends JavaTokenParsers{
 	val scalaExpr = """[^%]*""".r
 	val prologBody = """[^}]*""".r
 	
-	//Testing for extension of the parser to have more than one prolog block.
-	//Problem: Parsers does an infinit loop when using this
-	/*def scalaFile:Parser[String] = (opt(scalaExpr) ^^ parseOpt(x=>x)) ~ rep(prologDef | scalaExpr) ^^ {
-			case x ~ list => list.foldLeft(x){(conc,a) => conc + a}
-	}*/
-	
 	def scalaFile:Parser[String] = (opt(scalaExpr) ^^ parseOpt(x=>x)) ~ (opt(prologDef) ^^ parseOpt(x=>x)) ~ (opt(scalaExpr) ^^ parseOpt(x=>x)) ^^ {
 		case s1 ~ p1 ~ s2 => scalaPredef + s1 + "\n\n//Scalog Definition Part\n" + p1 + "//End of Scalog Definition Part\n" + s2
 	}
@@ -39,18 +33,28 @@ class ScalogPreParser extends JavaTokenParsers{
 	def prologFunDef:Parser[String] = "[" ~> repsep(func,",") <~ "]" ^^ ( _.reduceLeft{(conc,x) => conc + "\n" + x })
 
 	
-	def func:Parser[String] = 	(ident ~ (opt("[" ~> "[A-Z]\\w*".r <~ "]") ^^ (parseOpt(x => "[" + x + "]"))) ~ 
+	def func:Parser[String] = 	(ident ~ (opt("[" ~> "[A-Z]\\w*".r <~ "]") ^^ parseOpt(x => "[" + x + "]")) ~ 
 					( "(" ~> repsep(funArg,",") <~ ")"  | "" ^^ (x => List[(String,String)]()))  <~ ":") ~ 
 					((varRetTyp <~ "=>") ^^ (x => List[String](x)) | (("(" ~> repsep(varRetTyp,",") <~ ")") <~ "=>")) ~
 					ident ~ ("(" ~> repsep(ident,",") <~ ")") ^^ funcTrafo
-
+	
 	def funArg:Parser[(String,String)] = (ident <~ ":") ~ varTyp ^^ { case n ~ t => (n,t) }
 
-	def varTyp:Parser[String] = "Option" ~ "[" ~> varTyp <~ "]" | ("PrologList" | "List") ~ "[" ~> varTyp <~ "]" ^^ ( "PrologList["+_+"]" ) | litValue 
+	def varTyp:Parser[String] = "Option" ~ "[" ~> varTyp <~ "]" | 
+								("PrologList" | "List") ~ "[" ~> varTyp <~ "]" ^^ ( "PrologList["+_+"]" ) | 
+								litValue 
 
-	def varRetTyp:Parser[String] = "Option" ~ "[" ~> varRetTyp <~ "]" | "List" ~ "[" ~> varRetTyp <~ "]" ^^ ( "List["+_+"]" ) | litValue  
+	def varRetTyp:Parser[String] = 	"Option" ~ "[" ~> varRetTyp <~ "]" | 
+									"List" ~ "[" ~> varRetTyp <~ "]" ^^ ( "List["+_+"]" ) | 
+									litValue  
 
-	def litValue:Parser[String] = "Boolean" | "Int" ^^ (x => "scala.Int") | "Double" ^^ (x => "scala.Double") | "String" | "Long" | "[A-Z]\\w*".r
+	def litValue:Parser[String] = 	"Boolean" | 
+									"String" |
+									"Int" ^^ (x => "scala.Int") | 
+									"Double" ^^ (x => "scala.Double") | 
+									"Float" ^^ (x => "scala.Float") |
+									"Long" ^^ (x => "scala.Long") |										
+									"[A-Z]\\w*".r
 
 
 	/** Converts a string option into a string. It also applies the function env on the value of a some case. */
@@ -62,19 +66,23 @@ class ScalogPreParser extends JavaTokenParsers{
 	/** Converts a list of string tupels to a scala variable declaration (e.g. ("name","Int") converts to name:Int).
 		@param args List of arguments
 		@return Scala variables*/
-	private def argConc(args:List[(String,String)]):String = 
-		args map(x => x._1 + ":" + x._2) reduceLeft { (conc, x) =>
+	private def argConc(args:List[(String,String)]):String = args match{
+		case Nil => ""
+		case _ => args map(x => x._1 + ":" + x._2) reduceLeft { (conc, x) =>
 			conc + ", " + x
 		}
+	}
 
 	/** Concatenates arguments (with seperator , ). It applies the environment function f to enclose every argument.
 		@param args List of arguments
 		@param f Encloses every argument
 		@return Concatenated arguments*/
-	private def argConc[T](args:List[T], f:T => String):String = 
-		args map(f) reduceLeft { (conc, x) =>
+	private def argConc[T](args:List[T], f:T => String):String = args match{
+		case Nil => ""
+		case _ => args map(f) reduceLeft { (conc, x) =>
 			conc + ", " + x
 		}
+	}
 
 	/** Builts the arguments for the prolog function call
 		@param pArgs List of prolog arguments (which gives us an expression back)
