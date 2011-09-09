@@ -37,15 +37,9 @@ class ScalogPreParser extends JavaTokenParsers{
 	}
 
 	def prologFunDef:Parser[String] = "[" ~> repsep(func,",") <~ "]" ^^ ( _.reduceLeft{(conc,x) => conc + "\n" + x })
-
-	
-	def func:Parser[String] = 	(ident ~ (opt("[" ~> "[A-Z]\\w*".r <~ "]") ^^ parseOpt(x => "[" + x + "]")) ~ 
-					( "(" ~> repsep(funArg,",") <~ ")"  | "" ^^ (x => List[(String,String)]()))  <~ ":") ~ 
-					((varRetTyp <~ "=>") ^^ (x => List[String](x)) | (("(" ~> repsep(varRetTyp,",") <~ ")") <~ "=>")) ~
-					ident ~ ("(" ~> repsep(ident,",") <~ ")") ^^ funcTrafo
 	
 					
-	/*def func:Parser[String] = (((scalaFunc ~ scalaArgs <~ ":") ~ scalaRetArgs <~ "=>") ~ prologFunc) ^^ funcTrafo
+	def func:Parser[String] = (((scalaFunc ~ scalaArgs <~ ":") ~ scalaRetArgs <~ "=>") ~ ident ~ prologFuncArgs) ^^ funcTrafo
 					
 	def scalaFunc:Parser[String~String] = ident ~ (opt("[" ~> "[A-Z]\\w*".r <~ "]") ^^ parseOpt(x => "[" + x + "]"))
 	
@@ -55,7 +49,7 @@ class ScalogPreParser extends JavaTokenParsers{
 	def scalaRetArgs:Parser[List[String]] = varRetTyp ^^ (x => List[String](x)) | 
 											"(" ~> repsep(varRetTyp,",") <~ ")"
 	
-	def prologFunc:Parser[String~List[String]] = ident ~ ("(" ~> repsep(ident,",") <~ ")")*/
+	def prologFuncArgs:Parser[List[String]] = ("(" ~> repsep(ident,",") <~ ")")
 
 	
 	def funArg:Parser[(String,String)] = (ident <~ ":") ~ varTyp ^^ { case n ~ t => (n,t) }
@@ -126,7 +120,7 @@ class ScalogPreParser extends JavaTokenParsers{
 		@return The scala function */
 	def funcTrafo(in: String~String~List[(String,String)]~List[String]~String~List[String]):String = in match{
 		case name ~ gen ~ sArgs ~ sRetArgs ~ pName ~ pArgs =>
-			println("Parsed " + name + " => " + pName)
+			println("Parsed " + name + " => " + pName) //Print parsing info...
 			val pRetArgs = pArgs.filter(x => !sArgs.exists(y => y._1 == x))
 			val pArg = pArgs.filter(x => sArgs.exists(y => y._1 == x))
 			
