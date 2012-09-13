@@ -4,7 +4,7 @@ a look at the german documentation provided in this repo (english version is in 
 
 How to compile Scalog.
 ***********************
-You'll need the libraries of the tuProlog project (as linked above). Make sure that your classpath contains these librarys.
+You'll need the libraries of the tuProlog project (as linked above). Make sure that your classpath contains these libraries.
 Furthermore you'll need to compile Predef.scala and Scalog.scala.
 Every Scalog source file is linked with the Predef file. Assure that your classpath contains this file.
 
@@ -17,4 +17,4 @@ After this you can compile your destination file DestFile into a class file
 scalac <DestFile>
 
 Now you should be able to run your Scalog code directly by referring to your class name.
-For further instructions you should consult the documentation.
+For further instructions you can consult the documentation.
